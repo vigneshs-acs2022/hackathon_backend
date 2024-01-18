@@ -4,7 +4,7 @@ import os
 from sqlalchemy.orm import sessionmaker
 
 Base = declarative_base()
-
+metadata = Base.metadata
 
 def get_db():
     engine = create_engine('mysql+pymysql://root:@127.0.0.1:3306/hackathon_survey?charset=utf8')

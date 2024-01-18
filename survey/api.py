@@ -7,8 +7,11 @@ survey_router = APIRouter()
 
 
 @survey_router.post("/user")
-async def add_user(request: Request, response: Response, db:Session=Depends(get_db)):
-
-    add_user = Survey.add_user(
-       request, response, db)
+async def add_user(data: dict, response: Response, db:Session=Depends(get_db)):
+    add_user = await Survey.add_user(data, response, db)
     return add_user
+
+@survey_router.get("/languages")
+async def add_user(db:Session=Depends(get_db)):
+    languages = await Survey.list_languages(db)
+    return languages

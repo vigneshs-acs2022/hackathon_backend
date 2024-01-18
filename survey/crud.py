@@ -29,8 +29,13 @@ class Survey:
             db.add(new_user)
             db.commit()
 
-            return {'message': 'User added successfully'}
+            return {'success': True,'data': 'User added successfully'}
 
         except Exception as e:
             db.rollback()
             raise HTTPException(status_code=500, detail=str(e))
+
+    async def list_languages(db):
+        languages = db.query(Language).all()
+
+        return {'success': True,'data': languages}
