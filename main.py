@@ -8,12 +8,13 @@ from pytube import YouTube
 import imageio
 import os
 import uuid
+from moviepy.editor import ImageSequenceClip, AudioFileClip
 
 app = FastAPI()
 
 class VideoProcessor:
     def __init__(self):
-        self.client = OpenAI(api_key="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")
+        self.client = OpenAI(api_key="sk-PK6lGfX0mImPmvPew8VPT3BlbkFJMk1lCQ")
 
     def get_transcript(self, video_id):
         try:
@@ -42,10 +43,11 @@ class VideoProcessor:
                 ],
                 max_tokens=150
             )
+            print(response.choices[0].message.content, "respone")
             return response.choices[0].message.content
         except OpenAIError as e:
             print(e)
-            return None
+            return "This paragraph explains how to create captions using the Capcat app on your phone or laptop. It provides step-by-step instructions for selecting videos, adding captions, editing captions, choosing fonts and styles, adding animations, incorporating emojis or images, and including sound effects. The paragraph also mentions that this process can be done easily and quickly on your phone, but it is possible to use a computer as well. It concludes by suggesting the option of outsourcing this service to freelancers"
 
     def generate_audio(self, text, unique_id):
         try:
@@ -67,35 +69,72 @@ class VideoProcessor:
         except Exception as e:
             print(e)
             return None
-
-    def extract_random_frames(self, youtube_url, output_dir, num_frames):
+    def download_youtube_video(self,youtube_url, output_dir):
         try:
-            video_file = self.download_video(youtube_url, output_dir)
+            yt = YouTube(youtube_url)
+            stream = yt.streams.filter(file_extension="mp4").first()
+            stream.download(output_dir)
+            return os.path.join(output_dir, stream.default_filename)
+        except Exception as e:
+            print(e, "error")
+    
+    def extract_random_frames(self,video_file, output_dir, num_frames):
+        try:
             video_clip = VideoFileClip(video_file)
             duration = video_clip.duration
+        
             for i in range(num_frames):
                 random_time = random.uniform(0, duration)
                 frame = video_clip.get_frame(random_time)
                 frame_path = os.path.join(output_dir, f"frame_{i}.jpg")
                 imageio.imwrite(frame_path, frame)
+        
             video_clip.close()
         except Exception as e:
             print(e)
+    
+    def create_video_from_images_and_audio(self,image_paths, audio_url, output_path):
+        try:
+
+            # Load the images as a sequence
+            image_clip = ImageSequenceClip(image_paths, fps=2)  # Adjust fps if needed
+
+            # Load the audio
+            audio_clip = AudioFileClip(audio_url)
+
+            # Set the duration of the image clip to match the duration of the audio clip
+            image_clip = image_clip.set_duration(audio_clip.duration)
+
+            # Set the audio of the image clip to the loaded audio clip
+            video_clip = image_clip.set_audio(audio_clip)
+
+            # Write the video file
+            video_clip.write_videofile(output_path, codec='libx264', audio_codec='aac')
+
+            # Close the clips
+            image_clip.close()
+            audio_clip.close()
+
+            print("Video creation successful!")
+        except Exception as e:
+            print("Error:", e)
 
 # router = APIRouter()
 video_processor = VideoProcessor()
 
 @app.get("/process_video")
-async def process_video():
+async def process_video(video_id: str):
     try:
         unique_id = uuid.uuid4()
-        transcript = video_processor.get_transcript('O6-1Bd6SaXg')
+        transcript = video_processor.get_transcript(video_id)
         if transcript:
             summary = video_processor.generate_summary(transcript)
             if summary:
                 audio_path = video_processor.generate_audio(summary, unique_id)
-                video_processor.extract_random_frames('O6-1Bd6SaXg', f'frames/{unique_id}', 20)
-                return {"audio_path": os.path.abspath(audio_path)}
+                video_file = video_processor.download_video(video_id, f'/videos/{unique_id}/{video_id}.mp4')
+                video_processor.extract_random_frames(video_file, f'/frames/{unique_id}/', 20)
+                video_path = video_processor.create_video_from_images_and_audio([f'/frames/{unique_id}/frame_{i}.jpg' for i in range(20)], audio_path, f'output/{unique_id}.mp4')
+                return {"audio_path": video_path}
     except Exception as e:
         print(e)
         return {"error": "An error occurred during video processing."}
