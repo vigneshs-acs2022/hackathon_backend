@@ -7,7 +7,7 @@ Summarize the given paragraph accurately and succinctly, preserving its meaning 
 
 Craft a brief summary of the following passage, keeping its essence intact and avoiding grammatical inaccuracies.
 """
-client = openai.OpenAI(api_key="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")
+client = openai.OpenAI(api_key="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")
 response = client.chat.completions.create(
                     model="gpt-3.5-turbo",
                     messages=[
