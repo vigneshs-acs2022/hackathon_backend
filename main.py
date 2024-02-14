@@ -8,13 +8,18 @@ from pytube import YouTube
 import imageio
 import os
 import uuid
+from dotenv import load_dotenv
 from moviepy.editor import ImageSequenceClip, AudioFileClip
+import cv2
+
+load_dotenv()
 
 app = FastAPI()
 
+
 class VideoProcessor:
     def __init__(self):
-        self.client = OpenAI(api_key="sk-PK6lGfX0mImPmvPew8VPT3BlbkFJMk1lCQ")
+        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     def get_transcript(self, video_id):
         try:
@@ -53,7 +58,7 @@ class VideoProcessor:
         try:
             language = 'en'
             myobj = gTTS(text=text, lang=language, slow=False)
-            path = f"audio/{unique_id}.mp3"
+            path = f"static/audio/{unique_id}.mp3"
             myobj.save(path)
             return path
         except Exception as e:
@@ -131,10 +136,10 @@ async def process_video(video_id: str):
             summary = video_processor.generate_summary(transcript)
             if summary:
                 audio_path = video_processor.generate_audio(summary, unique_id)
-                video_file = video_processor.download_video(video_id, f'/videos/{unique_id}/{video_id}.mp4')
-                video_processor.extract_random_frames(video_file, f'/frames/{unique_id}/', 20)
-                video_path = video_processor.create_video_from_images_and_audio([f'/frames/{unique_id}/frame_{i}.jpg' for i in range(20)], audio_path, f'output/{unique_id}.mp4')
-                return {"audio_path": video_path}
+                video_file = video_processor.download_video(f"https://youtu.be/O6-1Bd6SaXg?si={video_id}", f'static/video/{unique_id}.mp4')
+                video_processor.extract_random_frames(video_file, f'/static/frames/{unique_id}/', 20)
+                video_path = video_processor.create_video_from_images_and_audio([f'/static/frames/{unique_id}/frame_{i}.jpg' for i in range(20)], audio_path, f'output/{unique_id}.mp4')
+                return {"video_path": video_path}
     except Exception as e:
         print(e)
         return {"error": "An error occurred during video processing."}
