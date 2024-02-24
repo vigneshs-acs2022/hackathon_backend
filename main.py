@@ -92,6 +92,9 @@ class VideoProcessor:
                 random_time = random.uniform(0, duration)
                 frame = video_clip.get_frame(random_time)
                 frame_path = os.path.join(output_dir, f"frame_{i}.jpg")
+                os.makedirs(output_dir, exist_ok=True)
+                
+                # Save the frame to disk using imageio
                 imageio.imwrite(frame_path, frame)
         
             video_clip.close()
@@ -102,7 +105,7 @@ class VideoProcessor:
         try:
 
             # Load the images as a sequence
-            image_clip = ImageSequenceClip(image_paths, fps=2)  # Adjust fps if needed
+            image_clip = ImageSequenceClip(image_paths, fps=24)  # Adjust fps if needed
 
             # Load the audio
             audio_clip = AudioFileClip(audio_url)
@@ -119,8 +122,9 @@ class VideoProcessor:
             # Close the clips
             image_clip.close()
             audio_clip.close()
-
+            
             print("Video creation successful!")
+            return output_path
         except Exception as e:
             print("Error:", e)
 
@@ -136,9 +140,9 @@ async def process_video(video_id: str):
             summary = video_processor.generate_summary(transcript)
             if summary:
                 audio_path = video_processor.generate_audio(summary, unique_id)
-                video_file = video_processor.download_video(f"https://youtu.be/O6-1Bd6SaXg?si={video_id}", f'static/video/{unique_id}.mp4')
+                video_file = video_processor.download_video(f"https://youtu.be/{video_id}", f'static/video/{unique_id}.mp4')
                 video_processor.extract_random_frames(video_file, f'/static/frames/{unique_id}/', 20)
-                video_path = video_processor.create_video_from_images_and_audio([f'/static/frames/{unique_id}/frame_{i}.jpg' for i in range(20)], audio_path, f'output/{unique_id}.mp4')
+                video_path = video_processor.create_video_from_images_and_audio([f'/static/frames/{unique_id}/frame_{i}.jpg' for i in range(20)], audio_path, f'static/output/{unique_id}.mp4')
                 return {"video_path": video_path}
     except Exception as e:
         print(e)
